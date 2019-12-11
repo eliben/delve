@@ -19,6 +19,7 @@ import (
 	"github.com/go-delve/delve/pkg/version"
 	"github.com/go-delve/delve/service"
 	"github.com/go-delve/delve/service/api"
+	"github.com/go-delve/delve/service/dap"
 	"github.com/go-delve/delve/service/rpc2"
 	"github.com/go-delve/delve/service/rpccommon"
 	"github.com/spf13/cobra"
@@ -626,6 +627,20 @@ func execute(attachPid int, processArgs []string, conf *config.Config, coreFile 
 
 	disconnectChan := make(chan struct{})
 
+	config := &service.Config{
+		Listener:             listener,
+		ProcessArgs:          processArgs,
+		AttachPid:            attachPid,
+		AcceptMulti:          AcceptMulti,
+		WorkingDir:           WorkingDir,
+		Backend:              Backend,
+		CoreFile:             coreFile,
+		Foreground:           Headless,
+		DebugInfoDirectories: conf.DebugInfoDirectories,
+		CheckGoVersion:       CheckGoVersion,
+		DisconnectChan:       disconnectChan,
+	}
+
 	// Create and start a debugger server
 	switch APIVersion {
 	case "1", "2":
@@ -634,21 +649,14 @@ func execute(attachPid int, processArgs []string, conf *config.Config, coreFile 
 			fmt.Fprintln(os.Stderr, "Error: unsupported --api-version:", APIVersion)
 			return 1
 		}
-		server = rpccommon.NewServer(&service.Config{
-			Listener:             listener,
-			ProcessArgs:          processArgs,
-			AttachPid:            attachPid,
-			AcceptMulti:          AcceptMulti,
-			APIVersion:           intAPIVersion,
-			WorkingDir:           WorkingDir,
-			Backend:              Backend,
-			CoreFile:             coreFile,
-			Foreground:           Headless,
-			DebugInfoDirectories: conf.DebugInfoDirectories,
-			CheckGoVersion:       CheckGoVersion,
-
-			DisconnectChan: disconnectChan,
-		})
+		config.APIVersion = intAPIVersion
+		server = rpccommon.NewServer(config)
+	case "dap":
+		if !Headless {
+			fmt.Fprintln(os.Stderr, "Error: DAP only works with --headless")
+			return 1
+		}
+		server = dap.NewServer(config)
 	default:
 		fmt.Printf("Unknown API version: %s\n", APIVersion)
 		return 1
@@ -674,6 +682,12 @@ func execute(attachPid int, processArgs []string, conf *config.Config, coreFile 
 	var status int
 	if Headless {
 		if ContinueOnStart {
+			if APIVersion == "dap" {
+				fmt.Fprintln(os.Stderr, "--continue doesn't work with DAP for now")
+				return 1
+			}
+			// TODO(eliben): make it work here...
+
 			var client *rpc2.RPCClient
 			client = rpc2.NewClient(listener.Addr().String())
 			client.Disconnect(true) // true = continue after disconnect
