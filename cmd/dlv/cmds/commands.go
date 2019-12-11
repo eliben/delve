@@ -36,7 +36,7 @@ var (
 	// ContinueOnStart is whether to continue the process on startup
 	ContinueOnStart bool
 	// APIVersion is the requested API version while running headless
-	APIVersion int
+	APIVersion string
 	// AcceptMulti allows multiple clients to connect to the same server
 	AcceptMulti bool
 	// Addr is the debugging server listen address.
@@ -106,7 +106,7 @@ func New(docCall bool) *cobra.Command {
 
 	RootCommand.PersistentFlags().BoolVarP(&Headless, "headless", "", false, "Run debug server only, in headless mode.")
 	RootCommand.PersistentFlags().BoolVarP(&AcceptMulti, "accept-multiclient", "", false, "Allows a headless server to accept multiple client connections.")
-	RootCommand.PersistentFlags().IntVar(&APIVersion, "api-version", 1, "Selects API version when headless.")
+	RootCommand.PersistentFlags().StringVar(&APIVersion, "api-version", "1", "Selects API version when headless.")
 	RootCommand.PersistentFlags().StringVar(&InitFile, "init", "", "Init file, executed by the terminal client.")
 	RootCommand.PersistentFlags().StringVar(&BuildFlags, "build-flags", buildFlagsDefault, "Build flags, to be passed to the compiler.")
 	RootCommand.PersistentFlags().StringVar(&WorkingDir, "wd", ".", "Working directory for running the program.")
@@ -628,13 +628,18 @@ func execute(attachPid int, processArgs []string, conf *config.Config, coreFile 
 
 	// Create and start a debugger server
 	switch APIVersion {
-	case 1, 2:
+	case "1", "2":
+		intAPIVersion, err := strconv.Atoi(APIVersion)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Error: unsupported --api-version:", APIVersion)
+			return 1
+		}
 		server = rpccommon.NewServer(&service.Config{
 			Listener:             listener,
 			ProcessArgs:          processArgs,
 			AttachPid:            attachPid,
 			AcceptMulti:          AcceptMulti,
-			APIVersion:           APIVersion,
+			APIVersion:           intAPIVersion,
 			WorkingDir:           WorkingDir,
 			Backend:              Backend,
 			CoreFile:             coreFile,
@@ -645,7 +650,7 @@ func execute(attachPid int, processArgs []string, conf *config.Config, coreFile 
 			DisconnectChan: disconnectChan,
 		})
 	default:
-		fmt.Printf("Unknown API version: %d\n", APIVersion)
+		fmt.Printf("Unknown API version: %s\n", APIVersion)
 		return 1
 	}
 
