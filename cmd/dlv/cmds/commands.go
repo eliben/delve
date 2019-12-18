@@ -19,6 +19,7 @@ import (
 	"github.com/go-delve/delve/pkg/version"
 	"github.com/go-delve/delve/service"
 	"github.com/go-delve/delve/service/api"
+	"github.com/go-delve/delve/service/dap"
 	"github.com/go-delve/delve/service/rpc2"
 	"github.com/go-delve/delve/service/rpccommon"
 	"github.com/spf13/cobra"
@@ -544,7 +545,7 @@ func connectCmd(cmd *cobra.Command, args []string) {
 }
 
 func dapCmd(cmd *cobra.Command, args []string) {
-	fmt.Println("DAP asked to listen on", Addr)
+	dap.ServeDAP(Addr)
 }
 
 func splitArgs(cmd *cobra.Command, args []string) ([]string, []string) {
