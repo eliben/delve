@@ -188,6 +188,18 @@ or later, -gcflags="-N -l" on earlier versions of Go.`,
 	execCommand.Flags().BoolVar(&ContinueOnStart, "continue", false, "Continue the debugged process on start.")
 	RootCommand.AddCommand(execCommand)
 
+	dapCommand := &cobra.Command{
+		Use:   "debug-adapter-server",
+		Short: "Launch as a DAP server.",
+		Long: `Launch as a DAP server.
+
+The Debug Adapter Protocol (https://microsoft.github.io/debug-adapter-protocol/)
+is a standardized protocol for the interaction between development tools and
+debuggers. Delve acts as a DAP server, accepting commands over TCP.`,
+		Run: dapCmd,
+	}
+	RootCommand.AddCommand(dapCommand)
+
 	// Deprecated 'run' subcommand.
 	runCommand := &cobra.Command{
 		Use:   "run",
@@ -529,6 +541,10 @@ func connectCmd(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 	os.Exit(connect(addr, nil, conf, executingOther))
+}
+
+func dapCmd(cmd *cobra.Command, args []string) {
+	fmt.Println("DAP asked to listen on", Addr)
 }
 
 func splitArgs(cmd *cobra.Command, args []string) ([]string, []string) {
