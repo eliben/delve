@@ -42,9 +42,9 @@ type Server struct {
 	listener net.Listener
 	// conn is the accepted client connection.
 	conn net.Conn
-	// stopping is a channel that's closed when the server is Stop()-ed. This can
+	// stopChan is a channel that's closed when the server is Stop()-ed. This can
 	// be used to signal to goroutines run by the server that it's time to quit.
-	stopping chan interface{}
+	stopChan chan struct{}
 	// reader is used to read requests from the connection.
 	reader *bufio.Reader
 	// debugger is the underlying debugger service.
@@ -66,7 +66,7 @@ func NewServer(config *service.Config) *Server {
 	return &Server{
 		config:   config,
 		listener: config.Listener,
-		stopping: make(chan interface{}),
+		stopChan: make(chan struct{}),
 		log:      logger,
 	}
 }
@@ -76,7 +76,7 @@ func NewServer(config *service.Config) *Server {
 // and kills the target process if it was launched by it.
 func (s *Server) Stop() {
 	s.listener.Close()
-	close(s.stopping)
+	close(s.stopChan)
 	if s.conn != nil {
 		// Unless Stop() was called after serveDAPCodec()
 		// returned, this will result in closed connection error
@@ -132,9 +132,11 @@ func (s *Server) Run() {
 	go func() {
 		conn, err := s.listener.Accept()
 		if err != nil {
-			// This will print if the server is killed with Ctrl+C
-			// before client connection is accepted.
-			s.log.Errorf("Error accepting client connection: %s\n", err)
+			select {
+			case <-s.stopChan:
+			default:
+				s.log.Errorf("Error accepting client connection: %s\n", err)
+			}
 			s.signalDisconnect()
 			return
 		}
@@ -161,7 +163,7 @@ func (s *Server) serveDAPCodec() {
 		if err != nil {
 			stopRequested := false
 			select {
-			case <-s.stopping:
+			case <-s.stopChan:
 				stopRequested = true
 			}
 			if err != io.EOF && !stopRequested {
