@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"testing"
@@ -156,5 +157,20 @@ func TestBadLaunchRequests(t *testing.T) {
 		// We failed to launch the program. Make sure shutdown still works.
 		client.DisconnectRequest()
 		expectMessage(t, client, []byte(`{"seq":0,"type":"response","request_seq":3,"success":true,"command":"disconnect"}`))
+	})
+}
+
+func TestBadlyFormattedMessageToServer(t *testing.T) {
+	runTest(t, "increment", func(client *daptest.Client, fixture protest.Fixture) {
+		// Send a badly formatted message to the server, and expect it to close the
+		// connection.
+		client.SendBytes([]byte("foo\r\n\r\n"))
+		time.Sleep(100 * time.Millisecond)
+
+		_, err := client.ReadBaseMessage()
+
+		if err != io.EOF {
+			t.Errorf("got err=%v, want io.EOF", err)
+		}
 	})
 }

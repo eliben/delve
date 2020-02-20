@@ -42,8 +42,8 @@ type Server struct {
 	listener net.Listener
 	// conn is the accepted client connection.
 	conn net.Conn
-	// stopChan is a channel that's closed when the server is Stop()-ed. This can
-	// be used to signal to goroutines run by the server that it's time to quit.
+	// stopChan is closed when the server is Stop()-ed. This can be used to signal
+	// to goroutines run by the server that it's time to quit.
 	stopChan chan struct{}
 	// reader is used to read requests from the connection.
 	reader *bufio.Reader
@@ -77,13 +77,11 @@ func NewServer(config *service.Config) *Server {
 func (s *Server) Stop() {
 	s.listener.Close()
 	close(s.stopChan)
-	if s.conn != nil {
-		// Unless Stop() was called after serveDAPCodec()
-		// returned, this will result in closed connection error
-		// on next read, breaking out of the read loop and
-		// allowing the run goroutine to exit.
-		s.conn.Close()
-	}
+	// Unless Stop() was called after serveDAPCodec()
+	// returned, this will result in closed connection error
+	// on next read, breaking out of the read loop and
+	// allowing the run goroutine to exit.
+	s.conn.Close()
 	if s.debugger != nil {
 		kill := s.config.AttachPid == 0
 		if err := s.debugger.Detach(kill); err != nil {
@@ -142,6 +140,7 @@ func (s *Server) Run() {
 		}
 		s.conn = conn
 		s.serveDAPCodec()
+		s.conn.Close()
 	}()
 }
 
@@ -165,6 +164,7 @@ func (s *Server) serveDAPCodec() {
 			select {
 			case <-s.stopChan:
 				stopRequested = true
+			default:
 			}
 			if err != io.EOF && !stopRequested {
 				s.log.Error("DAP error: ", err)

@@ -43,6 +43,11 @@ func (c *Client) Close() {
 	c.conn.Close()
 }
 
+// SendBytes sends an arbitrary byte sequence to the server.
+func (c *Client) SendBytes(b []byte) {
+	c.conn.Write(b)
+}
+
 func (c *Client) send(request dap.Message) {
 	jsonmsg, _ := json.Marshal(request)
 	fmt.Println("[client -> server]", string(jsonmsg))
