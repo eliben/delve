@@ -77,11 +77,13 @@ func NewServer(config *service.Config) *Server {
 func (s *Server) Stop() {
 	s.listener.Close()
 	close(s.stopChan)
-	// Unless Stop() was called after serveDAPCodec()
-	// returned, this will result in closed connection error
-	// on next read, breaking out of the read loop and
-	// allowing the run goroutine to exit.
-	s.conn.Close()
+	if s.conn != nil {
+		// Unless Stop() was called after serveDAPCodec()
+		// returned, this will result in closed connection error
+		// on next read, breaking out of the read loop and
+		// allowing the run goroutine to exit.
+		s.conn.Close()
+	}
 	if s.debugger != nil {
 		kill := s.config.AttachPid == 0
 		if err := s.debugger.Detach(kill); err != nil {
@@ -140,7 +142,6 @@ func (s *Server) Run() {
 		}
 		s.conn = conn
 		s.serveDAPCodec()
-		s.conn.Close()
 	}()
 }
 

@@ -43,26 +43,10 @@ func (c *Client) Close() {
 	c.conn.Close()
 }
 
-// SendBytes sends an arbitrary byte sequence to the server.
-func (c *Client) SendBytes(b []byte) {
-	c.conn.Write(b)
-}
-
 func (c *Client) send(request dap.Message) {
 	jsonmsg, _ := json.Marshal(request)
 	fmt.Println("[client -> server]", string(jsonmsg))
 	dap.WriteProtocolMessage(c.conn, request)
-}
-
-// ReadBaseMessage reads and returns a json-encoded DAP message.
-func (c *Client) ReadBaseMessage() ([]byte, error) {
-	message, err := dap.ReadBaseMessage(c.reader)
-	if err != nil {
-		fmt.Println("DAP client error:", err)
-		return nil, err
-	}
-	fmt.Println("[client <- server]", string(message))
-	return message, nil
 }
 
 // ReadErrorResponse reads, decodes and validates the result
@@ -151,7 +135,7 @@ func (c *Client) ContinueRequest(thread int) {
 }
 
 // UnknownRequest triggers dap.DecodeProtocolMessageFieldError.
-func (c *Client) UnkownRequest() {
+func (c *Client) UnknownRequest() {
 	request := c.newRequest("unknown")
 	c.send(request)
 }

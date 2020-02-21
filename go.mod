@@ -10,6 +10,7 @@ require (
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/mattn/go-colorable v0.0.0-20170327083344-ded68f7a9561
 	github.com/mattn/go-isatty v0.0.3
+	github.com/nats-io/nats-server/v2 v2.1.4
 	github.com/onsi/ginkgo v1.8.0 // indirect
 	github.com/onsi/gomega v1.5.0 // indirect
 	github.com/peterh/liner v0.0.0-20170317030525-88609521dc4b
@@ -21,7 +22,7 @@ require (
 	github.com/stretchr/testify v1.3.0 // indirect
 	go.starlark.net v0.0.0-20190702223751-32f345186213
 	golang.org/x/arch v0.0.0-20190927153633-4e8777c89be4
-	golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb
+	golang.org/x/sys v0.0.0-20190726091711-fc99dfbffb4e
 	golang.org/x/tools v0.0.0-20191127201027-ecd32218bd7f
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
