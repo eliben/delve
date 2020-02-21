@@ -27,6 +27,7 @@ func TestMain(m *testing.M) {
 }
 
 func expectMessage(t *testing.T, client *daptest.Client, want []byte) {
+	t.Helper()
 	got, err := client.ReadBaseMessage()
 	if err != nil {
 		t.Error(err)
@@ -135,6 +136,7 @@ func TestSetBreakpoint(t *testing.T) {
 }
 
 func expectErrorResponse(t *testing.T, client *daptest.Client, requestSeq int, command string, message string, id int) *dap.ErrorResponse {
+	t.Helper()
 	response, err := client.ReadErrorResponse()
 	if err != nil {
 		t.Error(err)

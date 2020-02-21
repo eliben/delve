@@ -49,6 +49,17 @@ func (c *Client) send(request dap.Message) {
 	dap.WriteProtocolMessage(c.conn, request)
 }
 
+// ReadBaseMessage reads and returns a json-encoded DAP message.
+func (c *Client) ReadBaseMessage() ([]byte, error) {
+	message, err := dap.ReadBaseMessage(c.reader)
+	if err != nil {
+		fmt.Println("DAP client error:", err)
+		return nil, err
+	}
+	fmt.Println("[client <- server]", string(message))
+	return message, nil
+}
+
 // ReadErrorResponse reads, decodes and validates the result
 // to be an error response. Returns the response or an error.
 func (c *Client) ReadErrorResponse() (dap.Message, error) {
