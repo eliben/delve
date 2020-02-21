@@ -21,10 +21,9 @@ import (
 	"github.com/go-delve/delve/service"
 	"github.com/go-delve/delve/service/api"
 	"github.com/go-delve/delve/service/debugger"
-	"github.com/google/go-dap"  // dap
+	"github.com/google/go-dap" // dap
 	"github.com/sirupsen/logrus"
 )
-
 
 // Server implements a DAP server that can accept a single client for
 // a single debug session. It does not support restarting.
@@ -56,10 +55,9 @@ type Server struct {
 }
 
 // NewServer creates a new DAP Server. It takes an opened Listener
-// via config and assumes its ownership. Optionally takes DisconnectChan
-// via config, which can be used to detect when the client disconnects
-// and the server is ready to be shut down. The caller must call
-// Stop() on shutdown.
+// via config and assumes its ownership. config.disconnectChan has to be set;
+// it will be closed by the server when the client requested shutdown. Once
+// disconnectChan is closed, Server.Stop() has to be called.
 func NewServer(config *service.Config) *Server {
 	logger := logflags.DAPLogger()
 	logflags.WriteDAPListeningMessage(config.Listener.Addr().String())
@@ -102,21 +100,18 @@ func (s *Server) Stop() {
 // TODO(polina): lock this when we add more goroutines that could call
 // this when we support asynchronous request-response communication.
 func (s *Server) signalDisconnect() {
-	// DisconnectChan might be nil at server creation if the
-	// caller does not want to rely on the disconnect signal.
+	// Avoid accidentally closing the channel twice and causing a panic, when
+	// this function is called more than once. For example, we could have the
+	// following sequence of events:
+	// -- run goroutine: calls onDisconnectRequest()
+	// -- run goroutine: calls signalDisconnect()
+	// -- main goroutine: calls Stop()
+	// -- main goroutine: Stop() closes client connection
+	// -- run goroutine: serveDAPCodec() gets "closed network connection"
+	// -- run goroutine: serveDAPCodec() returns
+	// -- run goroutine: serveDAPCodec calls signalDisconnect()
 	if s.config.DisconnectChan != nil {
 		close(s.config.DisconnectChan)
-		// Take advantage of the nil check above to avoid accidentally
-		// closing the channel twice and causing a panic, when this
-		// function is called more than once. For example, we could
-		// have the following sequence of events:
-		// -- run goroutine: calls onDisconnectRequest()
-		// -- run goroutine: calls signalDisconnect()
-		// -- main goroutine: calls Stop()
-		// -- main goroutine: Stop() closes client connection
-		// -- run goroutine: serveDAPCodec() gets "closed network connection"
-		// -- run goroutine: serveDAPCodec() returns
-		// -- run goroutine: serveDAPCodec calls signalDisconnect()
 		s.config.DisconnectChan = nil
 	}
 }
