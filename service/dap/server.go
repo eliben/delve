@@ -56,8 +56,8 @@ type Server struct {
 
 // NewServer creates a new DAP Server. It takes an opened Listener
 // via config and assumes its ownership. config.disconnectChan has to be set;
-// it will be closed by the server when the client requested shutdown. Once
-// disconnectChan is closed, Server.Stop() has to be called.
+// it will be closed by the server when the client disconnects or requests
+// shutdown. Once disconnectChan is closed, Server.Stop() must be called.
 func NewServer(config *service.Config) *Server {
 	logger := logflags.DAPLogger()
 	logflags.WriteDAPListeningMessage(config.Listener.Addr().String())
@@ -69,9 +69,10 @@ func NewServer(config *service.Config) *Server {
 	}
 }
 
-// Stop stops the DAP debugger service, closes the listener and
-// the client connection. It shuts down the underlying debugger
-// and kills the target process if it was launched by it.
+// Stop stops the DAP debugger service, closes the listener and the client
+// connection. It shuts down the underlying debugger and kills the target
+// process if it was launched by it. This method mustn't be called more than
+// once.
 func (s *Server) Stop() {
 	s.listener.Close()
 	close(s.stopChan)
